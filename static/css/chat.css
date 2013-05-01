@@ -1,0 +1,112 @@
+.textarea-container {
+  position: absolute;
+  right: 164px;
+  bottom: 9px;
+  left: 200px;
+}
+
+textarea {
+  width: 100%;
+  margin-top: 5px;
+  margin-bottom: -5px;
+}
+
+.send-btn {
+  float:left;
+  position: absolute;
+  right: 40px;
+  bottom: 13px;
+}
+
+.option-div {
+  font-size: 90%;
+  float:left;
+  position: absolute;
+  left: 20px;
+  bottom: 17px;
+  opacity: 0.5;
+}
+
+.option-div input {
+  margin-top: -3px;
+}
+
+.contacts {
+  position: absolute;
+  right: 0px;
+  top: 42px;
+  bottom: 60px;
+
+  width: 150px;
+  background: #F5F5F5;
+
+  box-shadow: rgba(0, 0, 0, 0.098) -1px 0px 0px 0px;
+}
+
+.contacts ul {
+  margin: 0px;
+}
+
+.contacts li {
+  list-style: none;
+  padding: 5px;
+  padding-left: 10px;
+}
+
+.contacts li:hover {
+  background: #D9D9D9;
+}
+
+.msg-container {
+  position: absolute;
+  left: 0px;
+  top: 42px;
+  bottom: 60px;
+  right: 164px;
+  overflow: auto;
+}
+
+.messages {
+}
+
+.messages .time {
+  width: 70px;
+  padding-left: 5px;
+  vertical-align: top;
+}
+
+.messages .user {
+  width: 120px;
+  text-align: right;
+  padding-right: 3px;
+  vertical-align: top;
+}
+
+.messages .msg {
+  padding-left: 5px;
+  padding-right: 5px;
+
+}
+
+.user-seperator {
+  border-left:1px solid #D9D9D9;
+
+  position: absolute;
+  top: 42px;
+  left: 201px;
+  bottom: 60px;
+}
+
+.navbar {
+  margin-bottom: 5px;
+}
+
+#logout-btn {
+  position: absolute;
+  right: 10px;
+  top: 1px;
+}
+
+#add-btn {
+  padding-left: 5px;
+}
