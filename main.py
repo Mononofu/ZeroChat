@@ -45,12 +45,12 @@ app.add_url_rule('/login/', view_func=Login.as_view('login'))
 def create_user(user, pw):
   with sqlite3.connect('users.db') as conn:
     c = conn.cursor()
+    c.execute('''CREATE TABLE IF NOT EXISTS users
+               (username text, password text, salt text)''')
+
     c.execute("SELECT * FROM users WHERE username = ?", (user,))
     if len(c.fetchall()) > 0:
       return False
-
-    c.execute('''CREATE TABLE IF NOT EXISTS users
-               (username text, password text, salt text)''')
 
     salt = uuid.uuid4().hex
     hashed_password = hashlib.sha512(pw + salt).hexdigest()
