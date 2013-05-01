@@ -44,17 +44,30 @@ function addSocketHandlers() {
       } else if(msg['type'] == 'nicklist') {
         if(window.curChannel == msg['chan']) {
           parseUsers(msg['nicks']);
+        } else {
+          add_channel_btn_if_not_exists(msg['chan']);
+        }
+        if(msg['nicks'].length == 0) {
+          remove_channel_btn(msg['chan']);
         }
       }
     }
   }
 }
 
-function add_channel_btn(channel) {
+function add_channel_btn_if_not_exists(channel) {
   var clean_chan = channel.replace(/#/g, "");
-  var entry = $('<li id="' + clean_chan + '-chan-btn"><a href="#' + channel + '">' + channel + '</a></li>')
-  entry.click(channelButtonHandler);
-  $('#add-btn').before(entry);
+  if($('#' + clean_chan + '-chan-btn').length == 0) {
+    var clean_chan = channel.replace(/#/g, "");
+    var entry = $('<li id="' + clean_chan + '-chan-btn"><a href="#' + channel + '">' + channel + '</a></li>')
+    entry.click(channelButtonHandler);
+    $('#add-btn').before(entry);
+  }
+}
+
+function remove_channel_btn(channel) {
+  var clean_chan = channel.replace(/#/g, "");
+  $('#' + clean_chan + '-chan-btn').remove();
 }
 
 $(window).load(function () {
@@ -66,13 +79,13 @@ $(window).load(function () {
   $.get('/api/' + window.user + '/channels/', function(data) {
     var channels = $.parseJSON(data);
     $.each(channels, function(i, channel) {
-      add_channel_btn(channel);
+      add_channel_btn_if_not_exists(channel);
     });
   });
 
   $('#add-btn').click(function(e) {
     var new_chan = prompt("How do you want to call your channel?", "#chan");
-    add_channel_btn(new_chan);
+    add_channel_btn_if_not_exists(new_chan);
     joinChannel(new_chan);
   });
 });
@@ -91,14 +104,16 @@ function channelButtonHandler(e) {
 }
 
 function joinChannel(chan) {
+  if(window.curChannel != '') {
+    sock.send(JSON.stringify({action: 'quit', user: window.user, chan: window.curChannel }));
+  }
+
   console.log("joining ", chan);
   window.curChannel = chan;
 
   $('.channels > li').removeClass('active');
   var clean_chan = chan.replace(/#/g, "");
-  if($('#' + clean_chan + '-chan-btn').length == 0) {
-    add_channel_btn(chan);
-  }
+  add_channel_btn_if_not_exists(chan);
   $('#' + clean_chan + '-chan-btn').addClass('active');
 
   sock.send(JSON.stringify({action: 'join', user: window.user, chan: window.curChannel }));
@@ -173,14 +188,6 @@ function sendMsg () {
 
   sock.send(JSON.stringify({action: 'send', user: window.user,
     chan: window.curChannel, msg: msg }));
-
-  $.ajax({
-    type: "POST",
-    url: '/api/send/',
-    data: {msg: msg, user: window.user, chan: window.curChannel },
-    success: function(data) { console.log("result: ", data); },
-    dataType: "json"
-  });
 }
 
 function displayMsg(chan, user, content) {

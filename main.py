@@ -66,17 +66,6 @@ def show_channels(user):
   return json.dumps(list(set(['#lounge'] + list(channel_users.iterkeys()))))
 
 
-@app.route("/api/send/", methods=['POST'])
-@login_required
-def send_message():
-  chan = request.form["chan"]
-  user = request.form["user"]
-  msg = request.form["msg"]
-  app.logger.debug("[%s] %s: %s" % (chan, user, msg))
-  sender.send_msg(chan, user, msg)
-  return json.dumps(['#lounge'])
-
-
 from twisted.internet import reactor
 from twisted.web.server import Site
 from twisted.web.wsgi import WSGIResource
