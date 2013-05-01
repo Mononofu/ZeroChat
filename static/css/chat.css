@@ -23,7 +23,10 @@ textarea {
   float:left;
   position: absolute;
   left: 20px;
-  bottom: 17px;
+  bottom: 9px;
+}
+
+.option-div span {
   opacity: 0.5;
 }
 
@@ -109,4 +112,12 @@ textarea {
 
 #add-btn {
   padding-left: 5px;
+}
+
+.join {
+  color: green;
+}
+
+.quit {
+  color: #5E1919;
 }

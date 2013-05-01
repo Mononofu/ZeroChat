@@ -9,4 +9,7 @@ login_manager.login_view = "login"
 
 
 user_channels = {}
-channel_users = {}
+channel_users = {
+  '#lounge': set(["ChanServ"])
+}
+last_heartbeat = {}

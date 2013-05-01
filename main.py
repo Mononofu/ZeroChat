@@ -1,10 +1,13 @@
-from flask import redirect, request, render_template, url_for
+from flask import redirect, request, render_template, url_for, flash
 from flask.ext.login import login_required, UserMixin, current_user, login_user, logout_user
 from flask.views import View
 import json
 from common import *
 from messaging import MessageSender
 import werkzeug.serving
+import sqlite3
+import hashlib
+import uuid
 
 sender = None
 ws_handler = None
@@ -39,8 +42,60 @@ class Login(View):
 app.add_url_rule('/login/', view_func=Login.as_view('login'))
 
 
+def create_user(user, pw):
+  with sqlite3.connect('users.db') as conn:
+    c = conn.cursor()
+    c.execute("SELECT * FROM users WHERE username = ?", (user,))
+    if len(c.fetchall()) > 0:
+      return False
+
+    c.execute('''CREATE TABLE IF NOT EXISTS users
+               (username text, password text, salt text)''')
+
+    salt = uuid.uuid4().hex
+    hashed_password = hashlib.sha512(pw + salt).hexdigest()
+    for i in range(1000):
+      hashed_password = hashlib.sha512(hashed_password + salt).hexdigest()
+    c.execute("INSERT INTO users VALUES (?, ?, ?)", (user, hashed_password, salt))
+    conn.commit()
+    return True
+
+
+def check_user(user, pw):
+  try:
+    conn = sqlite3.connect('users.db')
+    c = conn.cursor()
+    c.execute("SELECT * FROM users WHERE username = ?", (user,))
+    user, stored_hashed_pw, salt = c.fetchone()
+
+    hashed_password = hashlib.sha512(pw + salt).hexdigest()
+    for i in range(1000):
+      hashed_password = hashlib.sha512(hashed_password + salt).hexdigest()
+    return hashed_password == stored_hashed_pw
+  except Exception as e:
+    app.logger.debug(str(e))
+    return False
+
+
 @app.route("/login_post/", methods=['POST'])
 def login_post():
+  app.logger.debug(request.form)
+  if len(request.form['username']) < 3:
+    flash("Your username should be at least 3 characters long.")
+    return redirect('/login/')
+  if len(request.form['password']) < 3:
+    flash("Your password should be at least 3 characters long.")
+    return redirect('/login/')
+
+  if 'signup' in request.form:
+    if not create_user(request.form['username'], request.form['password']):
+      flash("User already exists.")
+      return redirect('/login/')
+
+  if not check_user(request.form['username'], request.form['password']):
+    flash("Invalid password or username.")
+    return redirect('/login/')
+
   user = User(request.form['username'])
   login_user(user, remember=('remember-me' in request.form))
   return redirect(request.args.get("next") or url_for("index"))
@@ -63,7 +118,16 @@ def view_chan(chan):
 @login_required
 def show_channels(user):
   # always return at least the lounge
-  return json.dumps(list(set(['#lounge'] + list(channel_users.iterkeys()))))
+  if user not in user_channels:
+    return json.dumps(['#lounge'])
+
+  return json.dumps(list(set(['#lounge'] + list(user_channels[user]))))
+
+
+@app.route("/emoticon_list/")
+@login_required
+def list_emoticons():
+  return render_template('emoticons.html', user=str(current_user))
 
 
 from twisted.internet import reactor

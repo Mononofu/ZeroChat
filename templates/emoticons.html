@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>ZeroChat</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="">
+    <meta name="author" content="">
+
+    <!-- Le styles -->
+    <link href="/static/css/bootstrap.css" rel="stylesheet">
+    <style type="text/css">
+
+      /* Sticky footer styles
+      -------------------------------------------------- */
+
+      html,
+      body {
+        height: 100%;
+        /* The html and body elements cannot have any padding or margin. */
+      }
+
+      /* Wrapper for page content to push down footer */
+      #wrap {
+        min-height: 100%;
+        height: auto !important;
+        height: 100%;
+        /* Negative indent footer by it's height */
+        margin: 0 auto -60px;
+      }
+
+      /* Set the fixed height of the footer here */
+      #push,
+      #footer {
+        height: 60px;
+      }
+      #footer {
+        background-color: #f5f5f5;
+      }
+
+      /* Lastly, apply responsive CSS fixes as necessary */
+      @media (max-width: 767px) {
+        #footer {
+          margin-left: -20px;
+          margin-right: -20px;
+          padding-left: 20px;
+          padding-right: 20px;
+        }
+      }
+
+
+
+      /* Custom page CSS
+      -------------------------------------------------- */
+      /* Not required for template or sticky footer method. */
+
+
+      .container .credit {
+        margin: 20px 0;
+      }
+
+      code {
+        font-size: 80%;
+      }
+
+    </style>
+    <link href="/static/css/bootstrap-responsive.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/font-awesome.min.css">
+    <link href="/static/css/chat.css" rel="stylesheet">
+
+    <!-- HTML5 shim, for IE6-8 support of HTML5 elements -->
+    <!--[if lt IE 9]>
+      <script src="static/js/html5shiv.js"></script>
+    <![endif]-->
+
+  </head>
+
+  <body>
+
+    <!-- Part 1: Wrap all page content here -->
+    <div id="wrap">
+
+      <!-- Fixed navbar -->
+      <div class="navbar">
+        <div class="navbar-inner">
+          <div class="container">
+            <button type="button" class="btn" style="color:black;" onclick="javascript:document.location='/logout/'" id="logout-btn">
+              Logout
+            </button>
+            <a class="brand" href="/">ZeroChat</a>
+              <ul class="nav channels">
+                <li id="add-btn">
+                  <button class="btn btn" href="#">
+                    <i class="icon-plus" style="color:green"></i>
+                  </button>
+                </li>
+              </ul>
+          </div>
+        </div>
+      </div>
+
+      <div id="main-content" class="container">
+        <h1>Emoticons</h1>
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Shortcut</th>
+              <th>Emoticon</th>
+              <th>Shortcut</th>
+              <th>Emoticon</th>
+              <th>Shortcut</th>
+              <th>Emoticon</th>
+              <th>Shortcut</th>
+              <th>Emoticon</th>
+            </tr>
+          </thead>
+          <tbody id="emoticons" >
+          </tbody>
+        </table>
+
+        <h1>Rage Faces</h1>
+
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Shortcut</th>
+              <th>Rage Face</th>
+              <th>Shortcut</th>
+              <th>Rage Face</th>
+            </tr>
+          </thead>
+          <tbody id="ragefaces" >
+          </tbody>
+        </table>
+
+      </div> <!-- /container -->
+
+      <div id="push"></div>
+    </div>
+
+    <div id="footer">
+      <div class="container entry_bar">
+        <p class="muted credit">Join a channel to start chatting!</p>
+      </div>
+    </div>
+
+
+
+    <!-- Le javascript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script>
+      window.user = '{{ user }}';
+    </script>
+    <script src="/static/js/jquery.js"></script>
+    <script src="/static/js/bootstrap.js"></script>
+    <script src="/static/js/sockets.io.js"></script>
+    <script src="/static/js/chat.js"></script>
+
+    <script>
+
+    $.getJSON("/static/img/replacement.json", function(json) {
+      var path_to_shortcut_rage = {};
+      var path_to_shortcut_emo = {};
+
+      for(var shortcut in json) {
+        var path = json[shortcut]['path'];
+        if(shortcut[0] == '[') {
+          if(!path_to_shortcut_rage[path]) {
+            path_to_shortcut_rage[path] = [];
+          }
+          path_to_shortcut_rage[path].push(shortcut)
+        } else {
+          if(!path_to_shortcut_emo[path]) {
+            path_to_shortcut_emo[path] = [];
+          }
+          path_to_shortcut_emo[path].push(shortcut)
+        }
+      }
+
+      var cur_row = "<tr>";
+      var cell_count = 0;
+      for(var path in path_to_shortcut_emo) {
+        if(cell_count == 4) {
+          var row = $(cur_row + "</tr>");
+          $('#emoticons').append(row);
+          cur_row = "<tr>";
+          cell_count = 0;
+        }
+        var shortcuts = path_to_shortcut_emo[path].join("&nbsp;&nbsp;");
+        cur_row += '<td>' + shortcuts + '</td><td><img src="' + path + '"></td>';
+        cell_count += 1;
+      }
+      var row = $(cur_row + "</tr>");
+      $('#emoticons').append(row);
+      cur_row = "<tr>";
+      cell_count = 0;
+
+      for(var path in path_to_shortcut_rage) {
+        if(cell_count == 2) {
+          var row = $(cur_row + "</tr>");
+          $('#ragefaces').append(row);
+          cur_row = "<tr>";
+          cell_count = 0;
+        }
+        var shortcuts = path_to_shortcut_rage[path].join(", ");
+        cur_row += '<td>' + shortcuts + '</td><td><img src="' + path + '"></td>';
+        cell_count += 1;
+      }
+      var row = $(cur_row + "</tr>");
+      $('#ragefaces').append(row);
+      cur_row = "<tr>";
+      cell_count = 0;
+
+      /*
+          // rage face
+          var row = $('<tr><td>' + shortcut + '</td><td><img src="' + json[shortcut]['path'] + '"></td></tr>');
+          $('#ragefaces').append(row);
+        } else {
+          var row = $('<tr><td>' + shortcut + '</td><td><img src="' + json[shortcut]['path'] + '"></td></tr>');
+          $('#emoticons').append(row);
+        }
+      }*/
+    });
+
+    </script>
+
+  </body>
+</html>

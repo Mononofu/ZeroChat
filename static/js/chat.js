@@ -1,6 +1,31 @@
-var sock = null;
+var sock = null
+var snd = new Audio('/static/msg.wav');
+snd.volume = 0.5;
+var focused = true;
+var tick_count = 0;
+
+window.onfocus = function() {
+    focused = true;
+    if(window.blinkInterval) {
+      clearInterval(window.blinkInterval);
+      document.title = window.curChannel + " - ZeroChat";
+    }
+    window.blinkInterval = false;
+};
+window.onblur = function() {
+    focused = false;
+};
+
+
+String.prototype.replaceAll = function(search, replace) {
+    if (replace === undefined) {
+        return this.toString();
+    }
+    return this.split(search).join(replace);
+}
 
 function createWebsocket() {
+  console.log("try connecting");
   var wsuri;
   if (window.location.protocol === "file:") {
      wsuri = "ws://127.0.0.1:5000/ws";
@@ -16,32 +41,45 @@ function createWebsocket() {
      console.log("Browser does not support WebSocket!");
      window.location = "http://autobahn.ws/unsupportedbrowser";
   }
+  if(sock) {
+    addSocketHandlers();
+  }
 }
 
 function addSocketHandlers() {
   if (sock) {
     console.log("have sock");
     sock.onopen = function() {
-       console.log("Connected");
-       if(document.location.hash.length > 0) {
-         var chan = document.location.hash.substring(1);
-         joinChannel(chan);
-       }
+      if(window.connectionCheckInterval)
+        clearInterval(window.connectionCheckInterval);
+      window.connectionCheckInterval = false;
+
+      sock.send(JSON.stringify({action: 'socket_open', user: window.user}));
+      console.log("Connected");
+      if(document.location.hash.length > 0) {
+        var chan = document.location.hash.substring(1);
+        joinChannel(chan);
+      }
+      window.heartbeatInterval = setInterval("sendHeartbeat()", 1000);
     }
 
     sock.onclose = function(e) {
       console.log("Connection closed (wasClean = " + e.wasClean + ", code = " + e.code + ", reason = '" + e.reason + "')");
       sock = null;
+      window.connectionCheckInterval = setInterval("createWebsocket()", 1000);
+
+      if(window.heartbeatInterval)
+        clearInterval(window.heartbeatInterval);
+      window.heartbeatInterval = false;
     }
 
     sock.onmessage = function(e) {
       console.log("Got message: " + e.data);
       var msg = $.parseJSON(e.data);
       if(msg['type'] == 'msg') {
-        if(window.curChannel == msg['chan']) {
-          displayMsg(msg['chan'], msg['user'], msg['content']);
-        }
+        displayMsg(msg['chan'], msg['user'], msg['content']);
       } else if(msg['type'] == 'nicklist') {
+        window.channelUsers[msg['chan']] = msg['nicks'];
         if(window.curChannel == msg['chan']) {
           parseUsers(msg['nicks']);
         } else {
@@ -50,16 +88,29 @@ function addSocketHandlers() {
         if(msg['nicks'].length == 0) {
           remove_channel_btn(msg['chan']);
         }
+      } else if(msg['type'] == 'chan_event') {
+        if(msg['event'] == 'join') {
+          displayMsg(msg['chan'], '<span class="join">*</span>',
+            '<span class="join"><b>' + msg['user'] + '</b> has joined ' + msg['chan'] + '</span>');
+        } else if(msg['event'] == 'quit') {
+          displayMsg(msg['chan'], '<span class="quit">*</span>',
+            '<span class="quit"><b>' + msg['user'] + '</b> has quit' + msg['reason'] + '</span>');
+        }
       }
     }
   }
+}
+
+function sendHeartbeat() {
+  sock.send(JSON.stringify({action: 'heartbeat', user: window.user, count: tick_count}));
+  tick_count += 1;
 }
 
 function add_channel_btn_if_not_exists(channel) {
   var clean_chan = channel.replace(/#/g, "");
   if($('#' + clean_chan + '-chan-btn').length == 0) {
     var clean_chan = channel.replace(/#/g, "");
-    var entry = $('<li id="' + clean_chan + '-chan-btn"><a href="#' + channel + '">' + channel + '</a></li>')
+    var entry = $('<li id="' + clean_chan + '-chan-btn"><a href="/#' + channel + '">' + channel + '</a></li>')
     entry.click(channelButtonHandler);
     $('#add-btn').before(entry);
   }
@@ -72,9 +123,11 @@ function remove_channel_btn(channel) {
 
 $(window).load(function () {
   window.curChannel = '';
+  window.activeChannels = [];
+  window.channelUsers = {};
+  window.msgList = {};
 
   createWebsocket();
-  addSocketHandlers();
 
   $.get('/api/' + window.user + '/channels/', function(data) {
     var channels = $.parseJSON(data);
@@ -88,14 +141,10 @@ $(window).load(function () {
     add_channel_btn_if_not_exists(new_chan);
     joinChannel(new_chan);
   });
-});
 
-
-$(window).on('unload', function(){
-  if(window.curChannel != '') {
-    console.log("quitting");
-    sock.send(JSON.stringify({action: 'quit', user: window.user, chan: window.curChannel }));
-  }
+  $.getJSON("/static/img/replacement.json", function(json) {
+    window.emoticons = json;
+  });
 });
 
 
@@ -104,19 +153,21 @@ function channelButtonHandler(e) {
 }
 
 function joinChannel(chan) {
-  if(window.curChannel != '') {
-    sock.send(JSON.stringify({action: 'quit', user: window.user, chan: window.curChannel }));
+  console.log("joining", chan);
+  if(window.activeChannels.indexOf(chan) == -1) {
+    // joining new channel
+    sock.send(JSON.stringify({action: 'join', user: window.user, chan: chan }));
+    window.activeChannels.push(chan);
   }
-
-  console.log("joining ", chan);
   window.curChannel = chan;
+
+  document.title = chan + " - ZeroChat";
 
   $('.channels > li').removeClass('active');
   var clean_chan = chan.replace(/#/g, "");
   add_channel_btn_if_not_exists(chan);
   $('#' + clean_chan + '-chan-btn').addClass('active');
 
-  sock.send(JSON.stringify({action: 'join', user: window.user, chan: window.curChannel }));
 
   $('.entry_bar').html('\
 <div class="textarea-container">\
@@ -124,8 +175,9 @@ function joinChannel(chan) {
 </div>\
 <button class="send-btn btn btn-primary">Send</button> \
 <div class="option-div"> \
-  Press Enter to send \
-  <input type="checkbox" id="enter-to-end" checked> \
+  <span>Press Enter to send \
+  <input type="checkbox" id="enter-to-end" checked></span> <br />\
+  <a href="/emoticon_list/" id="emoticon-help">Emoticons & Rage Faces</a> \
 </div>');
 
   $("#main-content").html('\
@@ -148,6 +200,29 @@ function joinChannel(chan) {
   $(".send-btn").hide();
   $("#msg-box").unbind("keypress");
   $("#msg-box").keypress(sendOnEnter);
+  $("#msg-box").focus();
+
+  var emoticons_to_show = [":)", ":(", ":D", "(Y)", "(N)", "[notbad]", "[trollol]", "[pft]"]
+  var popover_content = '<table class="table">'
+  $.each(emoticons_to_show, function(i, emoticon) {
+    popover_content += "<tr><td>" + emoticon + "</td><td>" + addEmoticons(emoticon) + "</td></tr>";
+  })
+  popover_content += "</table";
+  $("#emoticon-help").popover({html: true, placement: 'top', trigger: 'hover',
+    title: 'Click for all Codes', content: popover_content
+  });
+
+  // display stored information for channel
+  if(window.msgList[chan]) {
+    $.each(window.msgList[chan], function(i, msg) {
+      displayMsg(chan, msg['user'], msg['content'], msg['time'], true);
+    });
+  }
+
+  if(window.channelUsers[chan]) {
+    parseUsers(window.channelUsers[chan]);
+  }
+
 }
 
 function parseUsers(data) {
@@ -190,10 +265,46 @@ function sendMsg () {
     chan: window.curChannel, msg: msg }));
 }
 
-function displayMsg(chan, user, content) {
+function addEmoticons(text) {
+  // put in emoticons
+  if(window.emoticons) {
+    for(var shortcut in window.emoticons) {
+      text = text.replaceAll(shortcut, '<img src="' + window.emoticons[shortcut]['path'] + '">')
+    }
+  }
+  return text;
+}
+
+function displayMsg(chan, user, content, time, replay) {
+  if(typeof(time)==='undefined') time = new Date().toTimeString().substring(0, 8);;
+  if(typeof(replay)==='undefined') replay = false;
+
   console.log("displaying", chan, user, content);
+
+  if(!replay) {
+    if(!window.msgList[chan]) {
+      window.msgList[chan] = []
+    }
+    window.msgList[chan].push({user: user, content: content, time: time})
+  }
+
+  if(!focused && !window.blinkInterval && document.location.pathname == "/") {
+    window.blinkInterval = setInterval("blinkTab()", 1000);
+  }
+
+  if(!focused && (snd.currentTime == 0 || snd.currentTime == snd.duration)  && document.location.pathname == "/") {
+    // don't play more than one sound at once
+    console.log("sound");
+    snd.currentTime = 0;
+    snd.play();
+  }
+
   if(chan == window.curChannel) {
-    var time = new Date().toTimeString().substring(0, 8);
+    content = addEmoticons(content);
+
+    // highlight urls
+    content = content.replace(/https?:\/\/([0-9a-zA-Z-]+)(\.[a-zA-Z0-9]+)*[\w\d:%#\/&\?\.]*/g, "<a href='$&'>$&</a>")
+
     var msg_entry = $('<tr>\
     <td class="time">[' + time + ']</td>\
     <td class="user">' + user + '</td>\
@@ -202,5 +313,16 @@ function displayMsg(chan, user, content) {
 
     $('.messages').append(msg_entry);
     $('.msg-container').scrollTop($(document).height());
+  }
+}
+
+
+function blinkTab() {
+  if(window.blinkOn) {
+    document.title = window.curChannel + " - ZeroChat";
+    window.blinkOn = false;
+  } else {
+    document.title = "New Message! - " + window.curChannel + " - ZeroChat";
+    window.blinkOn = true;
   }
 }

@@ -58,13 +58,24 @@
     <div class="container">
 
       <form class="form-signin" action="/login_post/" method="post">
-        <h2 class="form-signin-heading">Please sign in</h2>
+        <h2 class="form-signin-heading">Please Sign In</h2>
+        {% with messages = get_flashed_messages() %}
+          {% if messages %}
+            <div class="alert alert-error">
+              <strong>Oh snap!</strong>
+            {% for message in messages %}
+              {{ message }}
+            {% endfor %}
+            </div>
+          {% endif %}
+        {% endwith %}
         <input type="text" class="input-block-level" placeholder="Username" name="username">
         <input type="password" class="input-block-level" placeholder="Password" name="password">
         <label class="checkbox">
           <input type="checkbox" name="remember-me" value="remember-me"> Remember me
         </label>
-        <button class="btn btn-large btn-primary" type="submit">Sign in</button>
+        <button class="btn btn-large btn-primary" type="submit" name="signin" style="float:right">Sign in</button>
+        <button class="btn btn-large" type="submit" name="signup">Sign Up</button>
       </form>
 
     </div> <!-- /container -->
