@@ -106,10 +106,13 @@ function sendHeartbeat() {
   tick_count += 1;
 }
 
+function sanitize_channel(channel) {
+  return channel.replace(/#/g, "");
+}
+
 function add_channel_btn_if_not_exists(channel) {
-  var clean_chan = channel.replace(/#/g, "");
+  var clean_chan = sanitize_channel(channel);
   if($('#' + clean_chan + '-chan-btn').length == 0) {
-    var clean_chan = channel.replace(/#/g, "");
     var entry = $('<li id="' + clean_chan + '-chan-btn"><a href="/#' + channel + '">' + channel + '</a></li>')
     entry.click(channelButtonHandler);
     $('#add-btn').before(entry);
@@ -117,7 +120,7 @@ function add_channel_btn_if_not_exists(channel) {
 }
 
 function remove_channel_btn(channel) {
-  var clean_chan = channel.replace(/#/g, "");
+  var clean_chan = sanitize_channel(channel);
   $('#' + clean_chan + '-chan-btn').remove();
 }
 
@@ -164,7 +167,7 @@ function joinChannel(chan) {
   document.title = chan + " - ZeroChat";
 
   $('.channels > li').removeClass('active');
-  var clean_chan = chan.replace(/#/g, "");
+  var clean_chan = sanitize_channel(chan);
   add_channel_btn_if_not_exists(chan);
   $('#' + clean_chan + '-chan-btn').addClass('active');
 
@@ -201,6 +204,8 @@ function joinChannel(chan) {
   $("#msg-box").unbind("keypress");
   $("#msg-box").keypress(sendOnEnter);
   $("#msg-box").focus();
+
+  $('#' + clean_chan + '-chan-btn a').removeClass('unread');
 
   var emoticons_to_show = [":)", ":(", ":D", "(Y)", "(N)", "[notbad]", "[trollol]", "[pft]"]
   var popover_content = '<table class="table">'
@@ -313,6 +318,9 @@ function displayMsg(chan, user, content, time, replay) {
 
     $('.messages').append(msg_entry);
     $('.msg-container').scrollTop($(document).height());
+  } else {
+    var clean_chan = sanitize_channel(chan);
+    $('#' + clean_chan + '-chan-btn a').addClass('unread');
   }
 }
 

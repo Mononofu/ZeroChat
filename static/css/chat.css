@@ -121,3 +121,7 @@ textarea {
 .quit {
   color: #5E1919;
 }
+
+.unread {
+  color: red !important;
+}
