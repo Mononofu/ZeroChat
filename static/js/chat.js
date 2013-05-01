@@ -274,7 +274,7 @@ function addEmoticons(text) {
   // put in emoticons
   if(window.emoticons) {
     for(var shortcut in window.emoticons) {
-      text = text.replaceAll(shortcut, '<img src="' + window.emoticons[shortcut]['path'] + '">')
+      text = text.replaceAll(shortcut, '<img title="' + shortcut + '" class="emoticon" src="' + window.emoticons[shortcut]['path'] + '">')
     }
   }
   return text;
@@ -316,7 +316,14 @@ function displayMsg(chan, user, content, time, replay) {
     <td class="msg">' + content + '</td>\
   </tr>');
 
+
     $('.messages').append(msg_entry);
+
+    $('.emoticon').each(function(i, e){
+      console.log(i, e);
+      $(e).tooltip({title: "test", placement: 'left'});
+    });
+
     $('.msg-container').scrollTop($(document).height());
   } else {
     var clean_chan = sanitize_channel(chan);
