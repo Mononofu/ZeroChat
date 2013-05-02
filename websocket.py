@@ -17,6 +17,7 @@ class EchoServerProtocol(WebSocketServerProtocol):
       del user_channels[user]
     if chan in channel_users and user in channel_users[chan]:
       channel_users[chan].remove(user)
+    self.factory.sender.quit_channel(chan, user)
     self.factory.update_users(chan, channel_users[chan])
     self.factory.send_chan_event(chan, user, 'quit')
 
@@ -37,7 +38,10 @@ class EchoServerProtocol(WebSocketServerProtocol):
 
   def onSend(self, j, user):
     escaped_msg = cgi.escape(j['msg'])
-    self.factory.sender.send_msg(j['chan'], user, escaped_msg)
+    if escaped_msg.startswith("/"):
+      self.factory.sender.handle_command(escaped_msg)
+    else:
+      self.factory.sender.send_msg(j['chan'], user, escaped_msg)
 
   def onSocketOpen(self, j, user):
     self.user = user
@@ -49,8 +53,10 @@ class EchoServerProtocol(WebSocketServerProtocol):
 
   def onMessage(self, msg, binary):
     if not binary:
-      app.logger.debug("'%s' from %s" % (msg, self.peerstr))
       j = json.loads(msg)
+
+      if j['action'] != 'heartbeat':
+        app.logger.debug("'%s' from %s" % (msg, self.peerstr))
 
       handlers = {'quit': self.onQuit, 'join': self.onJoin, 'send': self.onSend,
                   'socket_open': self.onSocketOpen, 'heartbeat': self.onHeartbeat}

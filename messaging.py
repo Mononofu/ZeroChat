@@ -1,10 +1,14 @@
 import zmq
 import threading
 from common import app
+import os
 
+define_file = "/home/mononofu/sepm-group/common/defines.h"
+if os.path.exists('/home/mononofu/Programmieren/TU/SEPM-group/'):
+  define_file = "/home/mononofu/Programmieren/TU/SEPM-group/common/defines.h"
 
 defines = {}
-f = open("/home/mononofu/Programmieren/TU/SEPM-group/common/defines.h")
+f = open(define_file)
 for line in f.read().split("\n"):
   if "define" not in line or line.startswith("//"):
     continue
@@ -43,6 +47,17 @@ class MessageSender(object):
     self.reader = MessageReader(self.ctx, self.ws_handler)
     self.reader.start()
 
+  def handle_command(self, cmd):
+    parts = cmd.split(" ")
+    command = parts[0][1:]
+
+    commands = {'invite': self.onInvite}
+    commands[command](parts[1:])
+
+  def onInvite(self, args):
+    # /invite user channel
+    self.invite_user(args[1], args[0])
+
   def send_msg(self, channel, user, content):
     self.msg_in.send_unicode(channel, zmq.SNDMORE)
     self.msg_in.send_unicode(user, zmq.SNDMORE)
@@ -52,3 +67,13 @@ class MessageSender(object):
     self.chan_action.send_unicode(channel, zmq.SNDMORE)
     self.chan_action.send_unicode(user, zmq.SNDMORE)
     self.chan_action.send_unicode("join")
+
+  def quit_channel(self, channel, user):
+    self.chan_action.send_unicode(channel, zmq.SNDMORE)
+    self.chan_action.send_unicode(user, zmq.SNDMORE)
+    self.chan_action.send_unicode("quit")
+
+  def invite_user(self, channel, invitee):
+    self.chan_action.send_unicode(channel, zmq.SNDMORE)
+    self.chan_action.send_unicode(invitee, zmq.SNDMORE)
+    self.chan_action.send_unicode("invite")
