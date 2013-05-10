@@ -324,7 +324,7 @@ function displayMsg(chan, user, content, time, replay) {
       $(e).tooltip({title: "test", placement: 'left'});
     });
 
-    $('.msg-container').scrollTop($(document).height());
+    $('.msg-container').scrollTop($('.messages').height());
   } else {
     var clean_chan = sanitize_channel(chan);
     $('#' + clean_chan + '-chan-btn a').addClass('unread');

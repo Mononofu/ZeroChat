@@ -13,3 +13,5 @@ channel_users = {
   '#lounge': set(["ChanServ"])
 }
 last_heartbeat = {}
+
+hostname = "wien.furidamu.org"

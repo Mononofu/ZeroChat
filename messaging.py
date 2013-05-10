@@ -1,11 +1,11 @@
 import zmq
 import threading
-from common import app
+from common import app, hostname
 import os
 
 define_file = "/home/mononofu/sepm-group/common/defines.h"
-if os.path.exists('/home/mononofu/Programmieren/TU/SEPM-group/'):
-  define_file = "/home/mononofu/Programmieren/TU/SEPM-group/common/defines.h"
+if os.path.exists('/home/mononofu/Programmieren/sepm-group/'):
+  define_file = "/home/mononofu/Programmieren/sepm-group/common/defines.h"
 
 defines = {}
 f = open(define_file)
@@ -19,6 +19,11 @@ for line in f.read().split("\n"):
     defines[name] = value.replace("\"", "")
 
 
+def getSignificant(s):
+  print s.split("@")[0]
+  return s.split("@")[0]
+
+
 class MessageReader(threading.Thread):
   def __init__(self, ctx, ws):
     threading.Thread.__init__(self)
@@ -30,7 +35,8 @@ class MessageReader(threading.Thread):
   def run(self):
     while True:
       channel, recipient, sender, content = self.msg_out.recv_multipart()
-      self.ws_handler.send_msg(channel, recipient, sender, content)
+      self.ws_handler.send_msg(getSignificant(channel), getSignificant(recipient),
+        getSignificant(sender), content)
 
 
 class MessageSender(object):
@@ -59,21 +65,21 @@ class MessageSender(object):
     self.invite_user(args[1], args[0])
 
   def send_msg(self, channel, user, content):
-    self.msg_in.send_unicode(channel, zmq.SNDMORE)
-    self.msg_in.send_unicode(user, zmq.SNDMORE)
+    self.msg_in.send_unicode('%s@%s' % (channel, hostname), zmq.SNDMORE)
+    self.msg_in.send_unicode('%s@%s' % (user, hostname), zmq.SNDMORE)
     self.msg_in.send_unicode(content)
 
   def join_channel(self, channel, user):
-    self.chan_action.send_unicode(channel, zmq.SNDMORE)
-    self.chan_action.send_unicode(user, zmq.SNDMORE)
+    self.chan_action.send_unicode('%s@%s' % (channel, hostname), zmq.SNDMORE)
+    self.chan_action.send_unicode('%s@%s' % (user, hostname), zmq.SNDMORE)
     self.chan_action.send_unicode("join")
 
   def quit_channel(self, channel, user):
-    self.chan_action.send_unicode(channel, zmq.SNDMORE)
-    self.chan_action.send_unicode(user, zmq.SNDMORE)
+    self.chan_action.send_unicode('%s@%s' % (channel, hostname), zmq.SNDMORE)
+    self.chan_action.send_unicode('%s@%s' % (user, hostname), zmq.SNDMORE)
     self.chan_action.send_unicode("quit")
 
   def invite_user(self, channel, invitee):
-    self.chan_action.send_unicode(channel, zmq.SNDMORE)
+    self.chan_action.send_unicode('%s@%s' % (channel, hostname), zmq.SNDMORE)
     self.chan_action.send_unicode(invitee, zmq.SNDMORE)
     self.chan_action.send_unicode("invite")
