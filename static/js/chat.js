@@ -74,7 +74,9 @@ function addSocketHandlers() {
     }
 
     sock.onmessage = function(e) {
-      console.log("Got message: " + e.data);
+      if(e.data.indexOf("heartbeat") == -1)
+        console.log("Got message: " + e.data);
+
       var msg = $.parseJSON(e.data);
       if(msg['type'] == 'msg') {
         displayMsg(msg['chan'], msg['user'], msg['content']);
@@ -95,6 +97,8 @@ function addSocketHandlers() {
         } else if(msg['event'] == 'quit') {
           displayMsg(msg['chan'], '<span class="quit">*</span>',
             '<span class="quit"><b>' + msg['user'] + '</b> has quit' + msg['reason'] + '</span>');
+        } else if(msg['event'] == 'invite') {
+          add_channel_btn_if_not_exists(msg['chan']);
         }
       }
     }
@@ -107,7 +111,7 @@ function sendHeartbeat() {
 }
 
 function sanitize_channel(channel) {
-  return channel.replace(/#/g, "");
+  return channel.replace(/#/g, "").replace(/@/g, "-at-").replace(/\./g, "-dot");
 }
 
 function add_channel_btn_if_not_exists(channel) {
@@ -176,10 +180,9 @@ function joinChannel(chan) {
 <div class="textarea-container">\
   <textarea id="msg-box" rows="2" cols="100" placeholder="Write a message..." ></textarea> \
 </div>\
-<button class="send-btn btn btn-primary">Send</button> \
+<button class="invite-btn btn btn-primary">Invite User</button> \
 <div class="option-div"> \
-  <span>Press Enter to send \
-  <input type="checkbox" id="enter-to-end" checked></span> <br />\
+  <span>Press Enter to send</span> <br />\
   <a href="/emoticon_list/" id="emoticon-help">Emoticons & Rage Faces</a> \
 </div>');
 
@@ -197,10 +200,8 @@ function joinChannel(chan) {
 <div class="user-seperator">\
 </div>');
 
-  $('#enter-to-end').click(toggleEnterToSend);
-  $('.send-btn').click(sendMsg);
+  $('.invite-btn').click(inviteUser);
 
-  $(".send-btn").hide();
   $("#msg-box").unbind("keypress");
   $("#msg-box").keypress(sendOnEnter);
   $("#msg-box").focus();
@@ -238,19 +239,15 @@ function parseUsers(data) {
   });
 }
 
-function toggleEnterToSend (e) {
-  console.log(e);
-  if(e.target.checked) {
-    // use enter to send - hide button
-    console.log("hide");
-    $(".send-btn").hide();
-    $("#msg-box").unbind("keypress");
-    $("#msg-box").keypress(sendOnEnter);
-  } else {
-    console.log("show");
-    $(".send-btn").show();
-    $("#msg-box").unbind("keypress");
-  }
+function inviteUser(e) {
+  var user = window.prompt("Whom do you want to invite to this chat?",
+    "sepp@sepm.furidamu.org");
+
+  if(user == null)
+    return;
+
+  sock.send(JSON.stringify({action: 'send', user: window.user,
+    chan: window.curChannel, msg: '/invite ' + user + ' ' + window.curChannel }));
 }
 
 function sendOnEnter(e) {

@@ -6,13 +6,20 @@ import cgi
 import time
 
 
+def getQualified(name):
+  if "@" in name:
+    return name
+  return "%s@%s" % (name, hostname)
+
+
 class EchoServerProtocol(WebSocketServerProtocol):
   def onOpen(self):
     # app.logger.debug("socket opened for %s" % self.peerstr)
     pass
 
-  def onQuit(self, j, user):
-    chan = j["chan"]
+  def onQuit(self, j, u):
+    chan = getQualified(j["chan"])
+    user = getQualified(u)
     if user in user_channels:
       del user_channels[user]
     if chan in channel_users and user in channel_users[chan]:
@@ -21,8 +28,9 @@ class EchoServerProtocol(WebSocketServerProtocol):
     self.factory.update_users(chan, channel_users[chan])
     self.factory.send_chan_event(chan, user, 'quit')
 
-  def onJoin(self, j, user):
-    chan = j["chan"]
+  def onJoin(self, j, u):
+    chan = getQualified(j["chan"])
+    user = getQualified(u)
     if user not in user_channels:
       user_channels[user] = set()
     user_channels[user].add(chan)
@@ -36,19 +44,22 @@ class EchoServerProtocol(WebSocketServerProtocol):
     self.factory.update_users(chan, channel_users[chan])
     self.factory.send_chan_event(chan, user, 'join')
 
-  def onSend(self, j, user):
+  def onSend(self, j, u):
+    user = getQualified(u)
+    chan = getQualified(j["chan"])
     escaped_msg = cgi.escape(j['msg'])
     if escaped_msg.startswith("/"):
       self.factory.sender.handle_command(escaped_msg)
     else:
-      self.factory.sender.send_msg(j['chan'], user, escaped_msg)
+      self.factory.sender.send_msg(chan, user, escaped_msg)
 
   def onSocketOpen(self, j, user):
     self.user = user
     # app.logger.debug("socket opened for %s" % user)
     self.factory.register(self, user)
 
-  def onHeartbeat(self, j, user):
+  def onHeartbeat(self, j, u):
+    user = getQualified(u)
     last_heartbeat[user] = time.time()
 
   def onMessage(self, msg, binary):
@@ -102,14 +113,16 @@ class BroadcastServerFactory(WebSocketServerFactory):
 
     reactor.callLater(1, self.tick)
 
-  def register(self, client, username):
+  def register(self, client, u):
+    username = getQualified(u)
     if not username in self.clients:
       self.clients[username] = []
     if not client in self.clients[username]:
       # app.logger.debug("registered client " + client.peerstr)
       self.clients[username].append(client)
 
-  def unregister(self, client, username):
+  def unregister(self, client, u):
+    username = getQualified(u)
     if username in self.clients:
       if client in self.clients[username]:
         # app.logger.debug("unregistered client " + client.peerstr)
@@ -118,7 +131,9 @@ class BroadcastServerFactory(WebSocketServerFactory):
           del self.clients[username]
 
   def send_msg(self, channel, recipient, sender, content):
+    app.logger.debug("[%s] trying to send %s from %s" % (channel, content, sender) )
     msg = json.dumps({'type': 'msg', 'chan': channel, 'user': sender, 'content': content})
+    app.logger.debug(self.clients)
     if recipient in self.clients:
       for c in self.clients[recipient]:
         c.sendMessage(msg)
@@ -141,3 +156,10 @@ class BroadcastServerFactory(WebSocketServerFactory):
         if user in self.clients:
           for c in self.clients[user]:
             c.sendMessage(msg)
+
+
+  def send_user_event(self, channel, recipient, event, reason=''):
+    msg = json.dumps({'type': 'chan_event', 'chan': channel, 'event': event, 'user': reason, 'reason': reason})
+    if recipient in self.clients:
+      for c in self.clients[recipient]:
+        c.sendMessage(msg)

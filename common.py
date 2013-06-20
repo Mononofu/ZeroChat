@@ -8,10 +8,10 @@ login_manager.init_app(app)
 login_manager.login_view = "login"
 
 
+hostname = "wien.furidamu.org"
+
 user_channels = {}
 channel_users = {
-  '#lounge': set(["ChanServ"])
+  '#lounge@%s' % hostname: set(["ChanServ"])
 }
 last_heartbeat = {}
-
-hostname = "wien.furidamu.org"

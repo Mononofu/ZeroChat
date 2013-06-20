@@ -119,9 +119,9 @@ def view_chan(chan):
 def show_channels(user):
   # always return at least the lounge
   if user not in user_channels:
-    return json.dumps(['#lounge'])
+    return json.dumps(['#lounge@wien.furidamu.org'])
 
-  return json.dumps(list(set(['#lounge'] + list(user_channels[user]))))
+  return json.dumps(list(set(['#lounge@wien.furidamu.org'] + list(user_channels[user]))))
 
 
 @app.route("/emoticon_list/")

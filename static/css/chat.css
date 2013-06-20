@@ -1,8 +1,8 @@
 .textarea-container {
   position: absolute;
-  right: 164px;
+  right: 264px;
   bottom: 9px;
-  left: 200px;
+  left: 300px;
 }
 
 textarea {
@@ -11,10 +11,10 @@ textarea {
   margin-bottom: -5px;
 }
 
-.send-btn {
+.invite-btn {
   float:left;
   position: absolute;
-  right: 40px;
+  right: 80px;
   bottom: 13px;
 }
 
@@ -40,7 +40,7 @@ textarea {
   top: 42px;
   bottom: 60px;
 
-  width: 150px;
+  width: 250px;
   background: #F5F5F5;
 
   box-shadow: rgba(0, 0, 0, 0.098) -1px 0px 0px 0px;
@@ -65,7 +65,7 @@ textarea {
   left: 0px;
   top: 42px;
   bottom: 60px;
-  right: 164px;
+  right: 264px;
   overflow: auto;
 }
 
@@ -79,7 +79,7 @@ textarea {
 }
 
 .messages .user {
-  width: 120px;
+  width: 220px;
   text-align: right;
   padding-right: 3px;
   vertical-align: top;
@@ -96,7 +96,7 @@ textarea {
 
   position: absolute;
   top: 42px;
-  left: 201px;
+  left: 301px;
   bottom: 60px;
 }
 
