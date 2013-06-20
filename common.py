@@ -12,6 +12,6 @@ hostname = "wien.furidamu.org"
 
 user_channels = {}
 channel_users = {
-  '#lounge@%s' % hostname: set(["ChanServ"])
+  '#lounge@%s' % hostname: set(["ChanServ@%s" % hostname])
 }
 last_heartbeat = {}

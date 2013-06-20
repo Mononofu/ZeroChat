@@ -111,15 +111,25 @@ function sendHeartbeat() {
 }
 
 function sanitize_channel(channel) {
-  return channel.replace(/#/g, "").replace(/@/g, "-at-").replace(/\./g, "-dot");
+  return channel.replace(/#/g, "-hash-").replace(/@/g, "-at-").replace(/\./g, "-dot-");
 }
 
 function add_channel_btn_if_not_exists(channel) {
   var clean_chan = sanitize_channel(channel);
   if($('#' + clean_chan + '-chan-btn').length == 0) {
-    var entry = $('<li id="' + clean_chan + '-chan-btn"><a href="/#' + channel + '">' + channel + '</a></li>')
+
+    var chanServer = channel.split("@");
+    var chan = chanServer[0];
+    var server = chanServer[1];
+
+    var entry = $('<li id="' + clean_chan + '-chan-btn" title="' + server
+      + '" class="user-tooltip"><a href="/#' + channel + '">' + chan + '</a></li>');
     entry.click(channelButtonHandler);
     $('#add-btn').before(entry);
+
+    $('.user-tooltip').each(function(i, e){
+      $(e).tooltip({title: "test", placement: 'bottom'});
+    });
   }
 }
 
@@ -145,6 +155,8 @@ $(window).load(function () {
 
   $('#add-btn').click(function(e) {
     var new_chan = prompt("How do you want to call your channel?", "#chan");
+    if(new_chan.indexOf("@") == -1)
+      new_chan += "@wien.furidamu.org";
     add_channel_btn_if_not_exists(new_chan);
     joinChannel(new_chan);
   });
@@ -156,7 +168,9 @@ $(window).load(function () {
 
 
 function channelButtonHandler(e) {
-  joinChannel(e.target.text);
+  var id = e.target.parentNode.id;
+  id = id.replaceAll("-hash-", "#").replaceAll("-dot-", ".").replaceAll("-at-", "@");
+  joinChannel(id.split("-chan-btn")[0]);
 }
 
 function joinChannel(chan) {
@@ -234,8 +248,16 @@ function joinChannel(chan) {
 function parseUsers(data) {
   $('#contact-list').html('');
   $.each(data, function(i, user) {
-    var contact_entry = $('<li>' + user + '</li>')
+    var userServer = user.split("@");
+    var user = userServer[0];
+    var server = userServer[1];
+
+    var contact_entry = $('<li title="' + server + '" class="user-tooltip">' + user + '</li>')
     $('#contact-list').append(contact_entry);
+  });
+
+  $('.user-tooltip').each(function(i, e){
+    $(e).tooltip({title: "test", placement: 'left'});
   });
 }
 
@@ -307,9 +329,17 @@ function displayMsg(chan, user, content, time, replay) {
     // highlight urls
     content = content.replace(/https?:\/\/([0-9a-zA-Z-]+)(\.[a-zA-Z0-9]+)*[\w\d:%#\/&\?\.]*/g, "<a href='$&'>$&</a>")
 
+
+    var userServer = user.split("@");
+    var user = userServer[0];
+    var server = userServer[1];
+
+    if(!server)
+      server = "system message";
+
     var msg_entry = $('<tr>\
     <td class="time">[' + time + ']</td>\
-    <td class="user">' + user + '</td>\
+    <td class="user user-tooltip" title="' + server + '" >' + user + '</td>\
     <td class="msg">' + content + '</td>\
   </tr>');
 
@@ -317,8 +347,11 @@ function displayMsg(chan, user, content, time, replay) {
     $('.messages').append(msg_entry);
 
     $('.emoticon').each(function(i, e){
-      console.log(i, e);
       $(e).tooltip({title: "test", placement: 'left'});
+    });
+
+    $('.user-tooltip').each(function(i, e){
+      $(e).tooltip({title: "test", placement: 'right'});
     });
 
     $('.msg-container').scrollTop($('.messages').height());
