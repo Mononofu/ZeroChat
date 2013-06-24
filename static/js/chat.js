@@ -120,6 +120,9 @@ function addSocketHandlers() {
       if(msg['type'] == 'msg') {
         displayMsg(msg['chan'], msg['user'], msg['content']);
       } else if(msg['type'] == 'nicklist') {
+        if(!window.channelUsers[msg['chan']]) {
+          window.channelUsers[msg['chan']] = [];
+        }
         window.channelUsers[msg['chan']] = window.channelUsers[msg['chan']].concat(msg['nicks']).unique();
         if(window.curChannel == msg['chan']) {
           parseUsers(window.channelUsers[msg['chan']]);
@@ -131,8 +134,8 @@ function addSocketHandlers() {
         }
       } else if(msg['type'] == 'chan_event') {
         if(msg['event'] == 'join') {
-          if(!channelUsers['chan']) {
-            channelUsers['chan'] = [];
+          if(!channelUsers[msg['chan']]) {
+            channelUsers[msg['chan']] = [];
           }
 
           if(channelUsers[msg['chan']].indexOf(msg['user']) < 0) {
@@ -146,8 +149,8 @@ function addSocketHandlers() {
           displayMsg(msg['chan'], '<span class="join">*</span>',
             '<span class="join"><b>' + msg['user'] + '</b> has joined ' + msg['chan'] + '</span>');
         } else if(msg['event'] == 'quit') {
-          if(!channelUsers['chan']) {
-            channelUsers['chan'] = [];
+          if(!channelUsers[msg['chan']]) {
+            channelUsers[msg['chan']] = [];
           }
 
           if(channelUsers[msg['chan']].indexOf(msg['user']) >= 0) {
