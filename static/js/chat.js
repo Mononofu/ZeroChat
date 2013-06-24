@@ -4,18 +4,46 @@ snd.volume = 0.5;
 var focused = true;
 var tick_count = 0;
 
-window.onfocus = function() {
-    focused = true;
-    if(window.blinkInterval) {
-      clearInterval(window.blinkInterval);
-      document.title = window.curChannel + " - ZeroChat";
-    }
-    window.blinkInterval = false;
-};
-window.onblur = function() {
-    focused = false;
-};
 
+(function() {
+    var hidden = "hidden";
+
+    // Standards:
+    if (hidden in document)
+        document.addEventListener("visibilitychange", onchange);
+    else if ((hidden = "mozHidden") in document)
+        document.addEventListener("mozvisibilitychange", onchange);
+    else if ((hidden = "webkitHidden") in document)
+        document.addEventListener("webkitvisibilitychange", onchange);
+    else if ((hidden = "msHidden") in document)
+        document.addEventListener("msvisibilitychange", onchange);
+    // IE 9 and lower:
+    else if ('onfocusin' in document)
+        document.onfocusin = document.onfocusout = onchange;
+    // All others:
+    else
+        window.onpageshow = window.onpagehide
+            = window.onfocus = window.onblur = onchange;
+
+    function onchange (evt) {
+      if('webkitVisibilityState' in document) {
+        focused = document.webkitVisibilityState == "visible";
+      } else if('visibilityState' in document) {
+        focused = document.visibilityState == "visible";
+      }
+
+      console.log("visible: ", focused);
+
+      if(focused) {
+        if(window.blinkInterval) {
+          clearInterval(window.blinkInterval);
+          document.title = window.curChannel + " - ZeroChat";
+        }
+        window.blinkInterval = false;
+      }
+
+    }
+})();
 
 String.prototype.replaceAll = function(search, replace) {
     if (replace === undefined) {
@@ -95,8 +123,14 @@ function addSocketHandlers() {
           displayMsg(msg['chan'], '<span class="join">*</span>',
             '<span class="join"><b>' + msg['user'] + '</b> has joined ' + msg['chan'] + '</span>');
         } else if(msg['event'] == 'quit') {
-          displayMsg(msg['chan'], '<span class="quit">*</span>',
-            '<span class="quit"><b>' + msg['user'] + '</b> has quit' + msg['reason'] + '</span>');
+          if(msg['user'] == msg['reason']) {
+            displayMsg(msg['chan'], '<span class="quit">*</span>',
+            '<span class="quit"><b>' + msg['user'] + '</b> has quit</span>');
+          } else {
+            displayMsg(msg['chan'], '<span class="quit">*</span>',
+            '<span class="quit"><b>' + msg['user'] + '</b> has quit ' + msg['reason'] + '</span>');
+          }
+
         } else if(msg['event'] == 'invite') {
           add_channel_btn_if_not_exists(msg['chan']);
         }
