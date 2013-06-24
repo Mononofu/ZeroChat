@@ -120,9 +120,17 @@ function addSocketHandlers() {
         }
       } else if(msg['type'] == 'chan_event') {
         if(msg['event'] == 'join') {
+          if(channelUsers[msg['chan']].indexOf(msg['user']) < 0) {
+            channelUsers[msg['chan']].push(msg['user']);
+            parseUsers(window.channelUsers[chan]);
+          }
           displayMsg(msg['chan'], '<span class="join">*</span>',
             '<span class="join"><b>' + msg['user'] + '</b> has joined ' + msg['chan'] + '</span>');
         } else if(msg['event'] == 'quit') {
+          if(channelUsers[msg['chan']].indexOf(msg['user']) >= 0) {
+            channelUsers[msg['chan']].splice(channelUsers[msg['chan']].indexOf(msg['user']), 1);
+            parseUsers(window.channelUsers[chan]);
+          }
           if(msg['user'] == msg['reason']) {
             displayMsg(msg['chan'], '<span class="quit">*</span>',
             '<span class="quit"><b>' + msg['user'] + '</b> has quit</span>');
