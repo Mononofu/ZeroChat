@@ -52,6 +52,17 @@ String.prototype.replaceAll = function(search, replace) {
     return this.split(search).join(replace);
 }
 
+Array.prototype.unique = function() {
+    var a = this.concat();
+    for(var i=0; i<a.length; ++i) {
+        for(var j=i+1; j<a.length; ++j) {
+            if(a[i] === a[j])
+                a.splice(j--, 1);
+        }
+    }
+    return a;
+};
+
 function createWebsocket() {
   console.log("try connecting");
   var wsuri;
@@ -109,9 +120,9 @@ function addSocketHandlers() {
       if(msg['type'] == 'msg') {
         displayMsg(msg['chan'], msg['user'], msg['content']);
       } else if(msg['type'] == 'nicklist') {
-        window.channelUsers[msg['chan']] = msg['nicks'];
+        window.channelUsers[msg['chan']] = window.channelUsers[msg['chan']].concat(msg['nicks']).unique();
         if(window.curChannel == msg['chan']) {
-          parseUsers(msg['nicks']);
+          parseUsers(window.channelUsers[msg['chan']]);
         } else {
           add_channel_btn_if_not_exists(msg['chan']);
         }
@@ -120,16 +131,31 @@ function addSocketHandlers() {
         }
       } else if(msg['type'] == 'chan_event') {
         if(msg['event'] == 'join') {
+          if(!channelUsers['chan']) {
+            channelUsers['chan'] = [];
+          }
+
           if(channelUsers[msg['chan']].indexOf(msg['user']) < 0) {
             channelUsers[msg['chan']].push(msg['user']);
-            parseUsers(window.channelUsers[chan]);
+
+            if(window.curChannel == msg['chan']) {
+              parseUsers(channelUsers[msg['chan']]);
+            }
           }
+
           displayMsg(msg['chan'], '<span class="join">*</span>',
             '<span class="join"><b>' + msg['user'] + '</b> has joined ' + msg['chan'] + '</span>');
         } else if(msg['event'] == 'quit') {
+          if(!channelUsers['chan']) {
+            channelUsers['chan'] = [];
+          }
+
           if(channelUsers[msg['chan']].indexOf(msg['user']) >= 0) {
             channelUsers[msg['chan']].splice(channelUsers[msg['chan']].indexOf(msg['user']), 1);
-            parseUsers(window.channelUsers[chan]);
+
+            if(window.curChannel == msg['chan']) {
+              parseUsers(channelUsers[msg['chan']]);
+            }
           }
           if(msg['user'] == msg['reason']) {
             displayMsg(msg['chan'], '<span class="quit">*</span>',
